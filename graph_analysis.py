@@ -256,7 +256,6 @@ def robustness_check(G: nx.Graph, k: int, trials: int = 20, seed: int = 42) -> D
         "avg_min_component_size": avg_min_size,
         "original_clusters_persisted": clusters_persisted
     }
-----------------------------
 # Verification: Homophily + Structural balance
 # -----------------------------
 def verify_homophily(G: nx.Graph, attr: str = "color", samples: int = 2000, seed: int = 42) -> Dict[str, object]:
@@ -265,6 +264,35 @@ def verify_homophily(G: nx.Graph, attr: str = "color", samples: int = 2000, seed
     - similarity = 1 if node attrs match, else 0
     - compare connected-pair similarities vs random-pair similarities
     """
+    import scipy.stats as stats
+    random.seed(seed)
+    edge_similarities = []
+    for u, v in G.edges():
+        u_attr = G.nodes[u].get(attr)
+        v_attr = G.nodes[v].get(attr)
+        if u_attr is None or v_attr is None:
+            continue
+        sim = 1 if u_attr == v_attr else 0
+        edge_similarities.append(sim)
+    random_similarities = []
+    nodes = list(G.nodes())
+    for _ in range(samples):
+        u, v = random.sample(nodes, 2)
+        u_attr = G.nodes[u].get(attr)
+        v_attr = G.nodes[v].get(attr)
+        if u_attr is None or v_attr is None:
+            continue
+        sim = 1 if u_attr == v_attr else 0
+        random_similarities.append(sim)
+    t_stat, p_val = stats.ttest_ind(edge_similarities, random_similarities, equal_var=False)
+    return {
+        "attribute_tested": attr,
+        "actual_edge_similarity_avg": sum(edge_similarities) / len(edge_similarities) if edge_similarities else 0.0,
+        "random_pair_similarity_avg": sum(random_similarities) / len(random_similarities) if random_similarities else 0.0,
+        "t_statistic": float(t_stat),
+        "p_value": float(p_val),
+        "homophily_detected": bool(p_val < 0.05 and t_stat > 0)
+    }
 
 def verify_balanced_graph(G: nx.Graph, sign_attr: str = "sign") -> Dict[str, object]:
     """
