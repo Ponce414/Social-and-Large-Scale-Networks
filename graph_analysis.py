@@ -226,7 +226,36 @@ def robustness_check(G: nx.Graph, k: int, trials: int = 20, seed: int = 42) -> D
     trial_min_size = []
 
     for t in range(trials):
+        H = G.copy()
+        edges = list(H.edges())
+        k_actual = min(k, len(edges))
+        removed_edges = random.sample(edges, k_actual)
+        H.remove_edges_from(removed_edges)
 
+        components = list(nx.connected_components(H))
+        trial_components_count.append(len(components))
+        if components:
+            sizes = [len(c) for c in components]
+            trial_max_sizes.append(max(sizes))
+            trial_min_size.append(min(sizes))
+        else:
+            trial_max_sizes.append(0)
+            trial_min_size.append(0)
+
+    avg_components = sum(trial_components_count) / trials
+    avg_max_size = sum(trial_max_sizes) / trials
+    avg_min_size = sum(trial_min_size) / trials
+
+    original_components = nx.number_connected_components(G)
+    clusters_persisted = all(count == original_components for count in trial_components_count)
+    return {
+        "trials": trials,
+        "k_edges_removed": k,
+        "avg_connected_components": avg_components,
+        "avg_max_component_size": avg_max_size,
+        "avg_min_component_size": avg_min_size,
+        "original_clusters_persisted": clusters_persisted
+    }
 ----------------------------
 # Verification: Homophily + Structural balance
 # -----------------------------
