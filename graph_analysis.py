@@ -149,6 +149,10 @@ def partition_communities(G: nx.Graph, n: int) -> List[set]:
             if len(communities) >= n:
                 communities = list(com)
                 break
+    for com, nodes in enumerate(communities):
+        for n in nodes:
+            G.nodes[n]["community"] = com
+    return communities
 
 
 # -----------------------------
