@@ -219,9 +219,15 @@ def simulate_failures(G: nx.Graph, k: int, seed: int) -> Dict[str, object]:
 
 def robustness_check(G: nx.Graph, k: int, trials: int = 20, seed: int = 42) -> Dict[str, object]:
     """Repeat edge-failure simulation across trials and aggregate results."""
+    random.seed(seed)
 
+    trial_components_count = []
+    trial_max_sizes = []
+    trial_min_size = []
 
-# -----------------------------
+    for t in range(trials):
+
+----------------------------
 # Verification: Homophily + Structural balance
 # -----------------------------
 def verify_homophily(G: nx.Graph, attr: str = "color", samples: int = 2000, seed: int = 42) -> Dict[str, object]:
