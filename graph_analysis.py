@@ -328,11 +328,11 @@ def verify_balanced_graph(G: nx.Graph, sign_attr: str = "sign") -> Dict[str, obj
                 elif group_assignment[v] != target_group:
                     is_balanced = False
                     violating_edges.append((u, v))
-                return {
-                    "is_balanced": is_balanced,
-                    "num_violating_edges": len(violating_edges),
-                    "violating_edges": violating_edges[:10]  # Limit output for readability
-                }
+        return {
+            "is_balanced": is_balanced,
+            "num_violating_edges": len(violating_edges),
+            "violating_edges": violating_edges[:10]  # Limit output for readability
+        }
     # -----------------------------
 # Temporal simulation
 # -----------------------------
