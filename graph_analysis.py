@@ -11,7 +11,6 @@ from typing import Dict, Tuple, Optional, List, Any
 
 import networkx as nx
 import networkx.algorithms.community
-from sqlparse.engine.grouping import group_assignment
 
 
 # -----------------------------
@@ -29,7 +28,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--components", type=int, default=None,
                    help="Partition graph into n communities using Girvan–Newman.")
 
-    p.add_argument("--plot", choices=["C", "N", "P", "T"], default=None,
+    p.add_argument("--plot", choices=["C", "N", "P"], default=None,
                    help="Plot mode: C=clustering coeff, N=neighborhood overlap, P=plot attributes.")
 
     p.add_argument("--verify_homophily", action="store_true",
@@ -147,8 +146,8 @@ def partition_communities(G: nx.Graph, n: int) -> List[set]:
         iterator = networkx.algorithms.community.girvan_newman(G)
         communities = []
         for com in iterator:
+            communities = list(com)
             if len(communities) >= n:
-                communities = list(com)
                 break
     for com, nodes in enumerate(communities):
         for n in nodes:
@@ -328,11 +327,11 @@ def verify_balanced_graph(G: nx.Graph, sign_attr: str = "sign") -> Dict[str, obj
                 elif group_assignment[v] != target_group:
                     is_balanced = False
                     violating_edges.append((u, v))
-        return {
-            "is_balanced": is_balanced,
-            "num_violating_edges": len(violating_edges),
-            "violating_edges": violating_edges[:10]  # Limit output for readability
-        }
+    return {
+        "is_balanced": is_balanced,
+        "num_violating_edges": len(violating_edges),
+        "violating_edges": violating_edges[:10]  # Limit output for readability
+    }
     # -----------------------------
 # Temporal simulation
 # -----------------------------
@@ -353,7 +352,7 @@ def temporal_simulation(G: nx.Graph, csv_path: str) -> Dict[str, object]:
             return {"ok": False, "reason": f"CSV must have columns: {sorted(required)}"}
 
         for row in reader:
-            ts = row["timestamp"]
+            ts = int(row["timestamp"])
             action = row["action"].strip().lower()
             u = row["source"]
             v = row["target"]
