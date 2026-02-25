@@ -158,15 +158,64 @@ def partition_communities(G: nx.Graph, n: int) -> List[set]:
 # -----------------------------
 # Failure simulation + robustness
 # -----------------------------
-def avg_shortest_path_length_safe(H: nx.Graph) -> Optional[float]:
+def avg_shortest_path_length_safe(G: nx.Graph) -> Optional[float]:
     """
     Average shortest path length:
     - If connected: compute on whole graph
     - If disconnected: compute on the largest connected component
     """
+    if G.number_of_nodes() == 0:
+        return None
+    if nx.is_connected(G):
+        return nx.average_shortest_path_length(G)
+    else:
+        largest_cc = max(nx.connected_components(G), key=len)
+        subgraph = G.subgraph(largest_cc)
+        if subgraph.number_of_nodes() > 1:
+            return nx.average_shortest_path_length(subgraph)
+        return 0.0
 
 def simulate_failures(G: nx.Graph, k: int, seed: int) -> Dict[str, object]:
     """Remove k random edges on a copy of G and report impact."""
+    random.seed(seed)
+
+    H = G.copy()
+
+    baseline_components = nx.number_connected_components(H)
+    baseline_path_length = avg_shortest_path_length_safe(H)
+    baseline_betweenness = nx.edge_betweenness_centrality(H)
+
+    edges = list(H.edges())
+    k_actual = min(k, len(edges))
+    removed_edges = random.sample(edges, k_actual)
+    H.remove_edges_from(removed_edges)
+
+    new_components = nx.number_connected_components(H)
+    new_path_length = avg_shortest_path_length_safe(H)
+    new_betweenness = nx.edge_betweenness_centrality(H)
+
+    if baseline_path_length is not None and new_path_length is not None:
+        path_length_change = new_path_length - baseline_path_length
+    else:
+        path_length_change = None
+
+    betweenness_diffs = []
+    for node in H.nodes():
+        old_val = baseline_betweenness.get(node, 0)
+        new_val = new_betweenness.get(node, 0)
+        betweenness_diffs.append(abs(old_val - new_val))
+    avg_betweenness_impact = sum(betweenness_diffs) / len(betweenness_diffs) if betweenness_diffs else 0.0
+
+    return {
+        "edges_removed": k_actual,
+        "components_before": baseline_components,
+        "components_after": new_components,
+        "disconnected_components_created": new_components - baseline_components,
+        "path_length_change": path_length_change,
+        "avg_betweenness_impact": avg_betweenness_impact
+
+    }
+
 
 def robustness_check(G: nx.Graph, k: int, trials: int = 20, seed: int = 42) -> Dict[str, object]:
     """Repeat edge-failure simulation across trials and aggregate results."""
