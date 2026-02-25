@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 
 from __future__ import annotations
 
@@ -11,6 +10,8 @@ from dataclasses import dataclass
 from typing import Dict, Tuple, Optional, List, Any
 
 import networkx as nx
+import networkx.algorithms.community
+
 
 # -----------------------------
 # CLI
@@ -139,6 +140,15 @@ def partition_communities(G: nx.Graph, n: int) -> List[set]:
     Partition the graph into n communities using Girvan–Newman.
     Attach node attribute 'community' (0..n-1).
     """
+    if n == 1:
+        communities = [set(G.nodes())]
+    else:
+        iterator = networkx.algorithms.community.girvan_newman(G)
+        communities = []
+        for com in iterator:
+            if len(communities) >= n:
+                communities = list(com)
+                break
 
 
 # -----------------------------
