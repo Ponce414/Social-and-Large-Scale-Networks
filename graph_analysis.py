@@ -6,7 +6,7 @@ import csv
 import os
 import random
 import sys
-from dataclasses import dataclass
+
 from typing import Dict, Tuple, Optional, List, Any
 
 import networkx as nx
@@ -250,7 +250,37 @@ def temporal_simulation(G: nx.Graph, csv_path: str) -> Dict[str, object]:
     CSV columns: source,target,timestamp,action(add/remove)
     Updates graph in-place.
     """
+    if not os.path.exists(csv_path):
+        return {"ok": False, "reason": f"CSV file not found: {csv_path}"}
 
+    events: List[Tuple[str, str, str, str]] = []
+    with open(csv_path, "r", newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        required = {"source", "target", "timestamp", "action"}
+        if not required.issubset(set(reader.fieldnames or [])):
+            return {"ok": False, "reason": f"CSV must have columns: {sorted(required)}"}
+
+        for row in reader:
+            ts = row["timestamp"]
+            action = row["action"].strip().lower()
+            u = row["source"]
+            v = row["target"]
+            events.append((ts, action, u, v))
+
+    events.sort(key=lambda x: x[0])
+
+    added = 0
+    removed = 0
+    for _, action, u, v in events:
+        if action == "add":
+            G.add_edge(u, v)
+            added += 1
+        elif action == "remove":
+            if G.has_edge(u, v):
+                G.remove_edge(u, v)
+                removed += 1
+
+    return {"ok": True, "events": len(events), "edges_added": added, "edges_removed": removed}
 
 # -----------------------------
 # Plotting
