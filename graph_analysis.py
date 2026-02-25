@@ -11,6 +11,7 @@ from typing import Dict, Tuple, Optional, List, Any
 
 import networkx as nx
 import networkx.algorithms.community
+from sqlparse.engine.grouping import group_assignment
 
 
 # -----------------------------
@@ -302,9 +303,37 @@ def verify_balanced_graph(G: nx.Graph, sign_attr: str = "sign") -> Dict[str, obj
       + edge => same group
       - edge => different group
     """
+    group_assignment = {node: None for node in G.nodes()}
+    is_balanced = True
+    violating_edges = []
+    for start_node in G.nodes():
+        if group_assignment[start_node] is not None:
+            continue
+        group_assignment[start_node] = 1
+        queue = [start_node]
 
-    
-# -----------------------------
+        while queue:
+            u = queue.pop(0)
+            for v in G.neighbors(u):
+                # Get the sign of the edge (defaulting to positive if missing)
+                edge_data = G.get_edge_data(u, v)
+                sign_val = edge_data.get(sign_attr, "+")
+                if sign_val in ["+", "positive", 1]:
+                    target_group = group_assignment[u]
+                else:
+                    target_group = -group_assignment[u]
+                if group_assignment[v] is None:
+                    group_assignment[v] = target_group
+                    queue.append(v)
+                elif group_assignment[v] != target_group:
+                    is_balanced = False
+                    violating_edges.append((u, v))
+                return {
+                    "is_balanced": is_balanced,
+                    "num_violating_edges": len(violating_edges),
+                    "violating_edges": violating_edges[:10]  # Limit output for readability
+                }
+    # -----------------------------
 # Temporal simulation
 # -----------------------------
 def temporal_simulation(G: nx.Graph, csv_path: str) -> Dict[str, object]:
